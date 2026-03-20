@@ -2,9 +2,20 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import HeroSection from "../components/HeroSection";
 import CompareView from "../components/CompareView";
+import { useScraper } from "../hooks/useScraper";
 
 const Index = () => {
   const [phase, setPhase] = useState<"home" | "compare">("home");
+  const { fetchPrices, uploadReceipt, results, loading } = useScraper();
+
+  const handleImageUpload = async (file: File) => {
+    const items = await uploadReceipt(file);
+    if (items.length > 0) {
+      setPhase("compare");
+      // Trigger scan automatically for the first item found in the receipt
+      fetchPrices([items[0]], "421202");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -17,7 +28,8 @@ const Index = () => {
           >
             <HeroSection
               onEnter={() => setPhase("compare")}
-              loading={false}
+              onUpload={handleImageUpload}
+              loading={loading}
             />
           </motion.div>
         ) : (
@@ -28,7 +40,12 @@ const Index = () => {
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
-            <CompareView onBack={() => setPhase("home")} />
+            <CompareView 
+              onBack={() => setPhase("home")} 
+              results={results}
+              isLoading={loading}
+              onSearch={fetchPrices}
+            />
           </motion.div>
         )}
       </AnimatePresence>
