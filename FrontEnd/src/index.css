@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@theme {
+  /* This converts your old CSS variables into Tailwind v4 Theme variables */
+  --color-background: hsl(240 6% 6%);
+  --color-foreground: hsl(0 0% 95%);
+
+  --color-card: hsl(240 5% 10%);
+  --color-card-foreground: hsl(0 0% 95%);
+
+  --color-primary: hsl(142 71% 45%);
+  --color-primary-foreground: hsl(240 6% 6%);
+
+  --color-muted: hsl(240 4% 14%);
+  --color-muted-foreground: hsl(240 5% 55%);
+
+  --color-border: hsl(240 4% 18%);
+  
+  /* Custom Smart Basket Tokens */
+  --color-glow: hsl(142 71% 45%);
+  --color-surface-elevated: hsl(240 5% 12%);
+  
+  --radius-xl: 0.75rem;
+  
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Base Styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-sans;
+  }
+}
+
+/* Utility Classes for that "Pro" Look */
+@utility text-glow {
+  text-shadow: 0 0 20px color-mix(in srgb, var(--color-glow) 40%, transparent), 
+               0 0 60px color-mix(in srgb, var(--color-glow) 15%, transparent);
+}
+
+@utility bg-glow {
+  box-shadow: 0 0 30px color-mix(in srgb, var(--color-glow) 15%, transparent), 
+              0 0 80px color-mix(in srgb, var(--color-glow) 5%, transparent);
+}
+
+@utility grid-pattern {
+  background-image: 
+    linear-gradient(color-mix(in srgb, var(--color-border) 30%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-border) 30%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@utility scanline {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    color-mix(in srgb, var(--color-glow) 1.5%, transparent) 2px,
+    color-mix(in srgb, var(--color-glow) 1.5%, transparent) 4px
+  );
+}
