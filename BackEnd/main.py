@@ -1,53 +1,53 @@
-import sys
-import asyncio
-import json
-import uvicorn
+import sys, asyncio, json, uvicorn
 from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
 from scraper import get_full_comparison
 
-# Windows loop policy fix
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 @app.post("/compare")
 async def compare_prices(basket_json: str = Form(...), pincode: str = Form(...)):
     try:
-        items = json.loads(basket_json)
-        print(f"\n[SCAN] Starting Sequential Search for: {items}")
-        
-        raw_results = await get_full_comparison(items, pincode)
-        
-        comparison_summary = {}
-        for res in raw_results:
-            if res["price"] > 0:
-                # Displaying the exact name detected by the scraper
-                comparison_summary[res["platform"]] = {
-                    "items": [{"product": res["name"], "price": res["price"]}],
-                    "subtotal": res["price"],
-                    "delivery_fee": res.get("delivery_fee", 0),
-                    "total": res["total"]
-                }
+        try:
+            items = json.loads(basket_json)
+        except:
+            items = [basket_json]
 
-        valid_totals = {k: v["total"] for k, v in comparison_summary.items()}
-        recommendation = min(valid_totals, key=valid_totals.get) if valid_totals else "No data"
+        print(f"\n[SCANNING LIST]: {items}")
+        raw_data = await get_full_comparison(items, pincode)
+        
+        # --- REVERTED TO PREVIOUS CARD STRUCTURE ---
+        comparison_summary = {}
+        for entry in raw_data:
+            for plat in ["Blinkit", "Zepto"]:
+                res = entry[plat]
+                if res["price"] > 0:
+                    # Grouping by platform to restore the dual-card UI
+                    if plat not in comparison_summary:
+                        comparison_summary[plat] = {
+                            "subtotal": 0,
+                            "delivery_fee": 15,
+                            "total": 0,
+                            "items": []
+                        }
+                    
+                    comparison_summary[plat]["items"].append({
+                        "product": entry["query"],
+                        "price": res["price"]
+                    })
+                    comparison_summary[plat]["subtotal"] += res["price"]
+                    comparison_summary[plat]["total"] += res["total"]
 
         return {
             "comparison": comparison_summary,
-            "recommendation": recommendation
+            "recommendation": "Calculated"
         }
     except Exception as e:
-        print(f"[ERROR]: {e}")
+        print(f"[SERVER ERROR]: {e}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
