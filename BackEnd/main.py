@@ -6,7 +6,7 @@ from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
 from scraper import get_full_comparison
 
-# Fix for Windows loop policy
+# Windows loop policy fix
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
@@ -24,13 +24,14 @@ app.add_middleware(
 async def compare_prices(basket_json: str = Form(...), pincode: str = Form(...)):
     try:
         items = json.loads(basket_json)
-        print(f"\n[REQUEST] Scanning: {items} at PIN: {pincode}")
+        print(f"\n[SCAN] Starting Sequential Search for: {items}")
         
         raw_results = await get_full_comparison(items, pincode)
         
         comparison_summary = {}
         for res in raw_results:
             if res["price"] > 0:
+                # Displaying the exact name detected by the scraper
                 comparison_summary[res["platform"]] = {
                     "items": [{"product": res["name"], "price": res["price"]}],
                     "subtotal": res["price"],
@@ -38,17 +39,15 @@ async def compare_prices(basket_json: str = Form(...), pincode: str = Form(...))
                     "total": res["total"]
                 }
 
-        # Recommendation Logic
         valid_totals = {k: v["total"] for k, v in comparison_summary.items()}
-        recommendation = min(valid_totals, key=valid_totals.get) if valid_totals else "No data found"
+        recommendation = min(valid_totals, key=valid_totals.get) if valid_totals else "No data"
 
-        print(f"[RESPONSE] Data found for {len(comparison_summary)} platforms.")
         return {
             "comparison": comparison_summary,
             "recommendation": recommendation
         }
     except Exception as e:
-        print(f"[ERROR] Main endpoint: {e}")
+        print(f"[ERROR]: {e}")
         return {"error": str(e)}
 
 if __name__ == "__main__":

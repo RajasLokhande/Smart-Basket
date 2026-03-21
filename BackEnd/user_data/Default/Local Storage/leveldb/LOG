@@ -1,0 +1,5 @@
+2026/03/21-14:30:00.083 89e0 Creating DB C:\Users\rajas\Programming files\smart-basket-new\BackEnd\user_data\Default\Local Storage\leveldb since it was missing.
+2026/03/21-14:30:00.111 89e0 Reusing MANIFEST C:\Users\rajas\Programming files\smart-basket-new\BackEnd\user_data\Default\Local Storage\leveldb/MANIFEST-000001
+2026/03/21-14:30:45.408 32c4 Level-0 table #5: started
+2026/03/21-14:30:45.434 32c4 Level-0 table #5: 245002 bytes OK
+2026/03/21-14:30:45.437 32c4 Delete type=0 #3
