@@ -10,19 +10,22 @@ const Index = () => {
 
   const handleImageUpload = async (file: File) => {
     const items = await uploadReceipt(file);
-    if (items.length > 0) {
+    if (items && items.length > 0) {
       setPhase("compare");
-      // Trigger scan automatically for the first item found in the receipt
+      // Automatically trigger a search for the first recognized item from the receipt
       fetchPrices([items[0]], "421202");
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    /* FIXED: Added 'relative overflow-hidden' so Framer Motion can measure the container accurately */
+    <div className="min-h-screen bg-background relative overflow-hidden">
       <AnimatePresence mode="wait">
         {phase === "home" ? (
           <motion.div
             key="home"
+            className="relative w-full"
+            initial={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 0.98, filter: "blur(8px)" }}
             transition={{ duration: 0.4 }}
           >
@@ -35,6 +38,7 @@ const Index = () => {
         ) : (
           <motion.div
             key="compare"
+            className="relative w-full"
             initial={{ opacity: 0, scale: 1.01 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
