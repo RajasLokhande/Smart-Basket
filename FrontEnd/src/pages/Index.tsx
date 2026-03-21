@@ -10,15 +10,23 @@ const Index = () => {
 
   const handleImageUpload = async (file: File) => {
     const items = await uploadReceipt(file);
+    
     if (items && items.length > 0) {
+      // 1. Move to the comparison view first
       setPhase("compare");
-      // Automatically trigger a search for the first recognized item from the receipt
-      fetchPrices([items[0]], "421202");
+      
+      // 2. Filter out very short strings (like single characters/icons) 
+      // and send the whole list to the scraper instead of just items[0]
+      const validItems = items.filter((item: string) => item.trim().length > 2);
+      
+      if (validItems.length > 0) {
+        // Automatically trigger search for the full list found on the receipt
+        fetchPrices(validItems, "421202");
+      }
     }
   };
 
   return (
-    /* FIXED: Added 'relative overflow-hidden' so Framer Motion can measure the container accurately */
     <div className="min-h-screen bg-background relative overflow-hidden">
       <AnimatePresence mode="wait">
         {phase === "home" ? (

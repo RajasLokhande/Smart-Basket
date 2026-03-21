@@ -4,10 +4,9 @@ export const useScraper = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
 
+  // Existing function for comparing manual lists
   const fetchPrices = useCallback(async (items: string[], pincode: string) => {
-    console.log("Attempting to call backend with:", { items, pincode });
     setLoading(true);
-
     try {
       const formData = new FormData();
       formData.append("basket_json", JSON.stringify(items));
@@ -18,37 +17,38 @@ export const useScraper = () => {
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Backend returned error:", errorData);
-        throw new Error("Server error");
-      }
+      if (!response.ok) throw new Error("Server error");
 
       const data = await response.json();
-      console.log("Backend Success:", data);
       setResults(data);
     } catch (error) {
-      console.error("NETWORK ERROR: Is your Python server running on port 8000?", error);
+      console.error("NETWORK ERROR:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // New function for OCR scanning
   const uploadReceipt = useCallback(async (file: File) => {
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", file); // Must match 'file: UploadFile' in main.py
 
       const response = await fetch("http://127.0.0.1:8000/upload-receipt", {
         method: "POST",
         body: formData,
       });
 
+      if (!response.ok) {
+        console.error("OCR Server Error:", response.status);
+        return [];
+      }
+
       const data = await response.json();
       return data.items || [];
     } catch (error) {
-      console.error("Upload Error:", error);
+      console.error("Upload Connection Error:", error);
       return [];
     } finally {
       setLoading(false);
