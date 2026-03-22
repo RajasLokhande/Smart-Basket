@@ -16,12 +16,14 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 await asyncio.sleep(2) 
             except:
                 await page.keyboard.press("Escape")
+
             url = f"https://www.zeptonow.com/search?query={item_name}"
 
+            # ✅ ONLY CHANGE FOR ZEPTO
             await page.goto(url, wait_until="domcontentloaded", timeout=TIMEOUT)
 
-            # ✅ FIX ONLY FOR ZEPTO
-            await page.locator('img').first.wait_for(timeout=15000)
+            # wait for products instead of ₹
+            await page.locator("img").first.wait_for(timeout=15000)
 
             await page.mouse.wheel(0, 400)
             await asyncio.sleep(1)
@@ -31,6 +33,7 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
             final_price = float(match.group(1)) if match else 0.0
 
         else:
+            # 🔵 BLINKIT — UNTOUCHED
             await page.goto("https://blinkit.com/", wait_until="domcontentloaded", timeout=TIMEOUT)
             try:
                 await page.click('button:has-text("Detect my location")', timeout=5000)
@@ -40,7 +43,6 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
 
             await page.goto(url, wait_until="networkidle", timeout=TIMEOUT)
             
-            # 🔵 BLINKIT (UNCHANGED)
             price_locator = page.get_by_text(re.compile(r"₹"), exact=False).first
             await price_locator.wait_for(state="visible", timeout=TIMEOUT)
             
