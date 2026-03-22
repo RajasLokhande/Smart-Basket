@@ -1,9 +1,28 @@
 [phases.setup]
-nixPkgs = ["tesseract", "python311"]
+nixPkgs = [
+  "python311",
+  "tesseract",
+  "glib",
+  "nss",
+  "nspr",
+  "atk",
+  "atk-bridge",
+  "cups",
+  "dbus",
+  "libdrm",
+  "expat",
+  "xcb-util",
+  "libxkbcommon",
+  "mesa",
+  "pango",
+  "cairo",
+  "gtk3"
+]
 
 [phases.install]
 cmds = [
-    "pip install -r requirements.txt"
+  "pip install -r requirements.txt",
+  "playwright install chromium"
 ]
 
 [start]
