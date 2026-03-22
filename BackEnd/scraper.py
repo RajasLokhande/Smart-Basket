@@ -59,24 +59,9 @@ async def get_full_comparison(items, pincode):
     
     results = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(
+        browser = await p.webkit.launch(
     headless=True,
-    args=[
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--disable-software-rasterizer",
-        "--disable-extensions",
-        "--disable-background-networking",
-        "--disable-background-timer-throttling",
-        "--disable-renderer-backgrounding",
-        "--disable-backgrounding-occluded-windows",
-        "--disable-ipc-flooding-protection",
-        "--single-process",
-        "--no-zygote",
-        "--memory-pressure-off",
-        "--disable-setuid-sandbox"
-    ]
+    args=["--no-sandbox"]
 )
         context = await browser.new_context(
     viewport={"width": 1280, "height": 720},
