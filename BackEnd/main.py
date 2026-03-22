@@ -20,11 +20,13 @@ else: # Linux (Railway)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://rajaslokhande.github.io", # Replace with your GitHub username
-        "https://pricesyncc.netlify.app"
+        "https://pricesync.netlify.app",    # Your EXACT Netlify URL from the error
+        "https://pricesyncc.netlify.app",   # Your other Netlify URL
+        "http://localhost:5173",           # For local testing
     ],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],                   # Allows POST, GET, etc.
+    allow_headers=["*"],                   # Allows all headers
 )
 
 @app.post("/compare")
