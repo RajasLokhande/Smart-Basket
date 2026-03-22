@@ -18,20 +18,21 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 await page.keyboard.press("Escape")
 
             url = f"https://www.zeptonow.com/search?query={item_name}"
-
-            # ✅ ONLY CHANGE FOR ZEPTO
             await page.goto(url, wait_until="domcontentloaded", timeout=TIMEOUT)
 
-            # wait for products instead of ₹
+            # wait for products
             await page.locator("img").first.wait_for(timeout=15000)
 
             await page.mouse.wheel(0, 400)
             await asyncio.sleep(1)
 
-            page_text = await page.inner_text("body")
-            match = re.search(r'₹\s?([1-9]\d*)', page_text)
-            final_price = float(match.group(1)) if match else 0.0
+            # ✅ FIXED PRICE SELECTOR
+            price_locator = page.locator("text=/₹\\s*[0-9]+/").first
+            await price_locator.wait_for(timeout=15000)
 
+            price_text = await price_locator.inner_text()
+            match = re.search(r'₹\s*([0-9]+)', price_text)
+            final_price = float(match.group(1)) if match else 0.0
         else:
             # 🔵 BLINKIT — UNTOUCHED
             await page.goto("https://blinkit.com/", wait_until="domcontentloaded", timeout=TIMEOUT)
