@@ -1,3 +1,5 @@
+import subprocess
+subprocess.run(["playwright", "install", "chromium"], check=False)
 import sys, asyncio, json, uvicorn, io
 from fastapi import FastAPI, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware

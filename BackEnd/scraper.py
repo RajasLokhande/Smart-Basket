@@ -60,10 +60,9 @@ async def get_full_comparison(items, pincode):
     results = []
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-        headless=True,
-        executable_path="/usr/bin/chromium",
-        args=["--no-sandbox", "--disable-dev-shm-usage"]
-    )
+    headless=True,
+    args=["--no-sandbox", "--disable-dev-shm-usage"]
+)
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         )
