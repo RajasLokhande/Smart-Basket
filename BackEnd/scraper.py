@@ -59,21 +59,26 @@ async def get_full_comparison(items, pincode):
     
     results = []
     async with async_playwright() as p:
-        browser = await p.webkit.launch(
-    headless=True,
-    args=["--no-sandbox"]
-)
-        context = await browser.new_context(
-    viewport={"width": 1280, "height": 720},
-    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-)
+        browser = await p.webkit.launch(headless=True)
 
         for current_item in items:
             print(f"--- Processing: {current_item} ---")
+
+            context = await browser.new_context(
+                viewport={"width": 1280, "height": 720},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            )
+
             blink_res = await scrape_platform("Blinkit", current_item, pincode, context)
             zepto_res = await scrape_platform("Zepto", current_item, pincode, context)
-            
-            results.append({"query": current_item, "Blinkit": blink_res, "Zepto": zepto_res})
+
+            await context.close()
+
+            results.append({
+                "query": current_item,
+                "Blinkit": blink_res,
+                "Zepto": zepto_res
+            })
 
         await browser.close()
         return results
