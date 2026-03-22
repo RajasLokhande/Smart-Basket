@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python311", "tesseract"]
+nixPkgs = ["tesseract", "python311"]
 
 [phases.install]
 cmds = [
@@ -7,4 +7,4 @@ cmds = [
 ]
 
 [start]
-cmd = "python -m playwright install chromium --with-deps && python main.py"
+cmd = "playwright install chromium --with-deps && python main.py"
