@@ -5,7 +5,7 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 async def scrape_platform(platform, item_name, pincode, browser_context):
-    page = await browser_context.new_page()
+    page = browser_context.pages[0] if browser_context.pages else await browser_context.new_page()
     TIMEOUT = 25000 
     
     try:
