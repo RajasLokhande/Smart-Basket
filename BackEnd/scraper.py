@@ -4,11 +4,9 @@ from playwright.async_api import async_playwright
 
 async def scrape_platform(platform, item_name, pincode, browser_context):
     page = await browser_context.new_page()
-    # Increased to 1 minute as requested
     TIMEOUT = 60000 
     
     try:
-        # --- YOUR ORIGINAL LOCATION & NAVIGATION LOGIC (UNTOUCHED) ---
         if platform.lower() == "zepto":
             await page.goto("https://www.zeptonow.com/", wait_until="domcontentloaded", timeout=TIMEOUT)
             try:
@@ -20,7 +18,7 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 await page.keyboard.press("Escape")
             url = f"https://www.zeptonow.com/search?query={item_name}"
         
-        else: # Blinkit
+        else:
             await page.goto("https://blinkit.com/", wait_until="domcontentloaded", timeout=TIMEOUT)
             try:
                 await page.click('button:has-text("Detect my location")', timeout=5000)
@@ -28,11 +26,8 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 await page.keyboard.press("Escape")
             url = f"https://blinkit.com/s/?q={item_name}"
 
-        # --- YOUR ORIGINAL EXTRACTION LOGIC (UNTOUCHED) ---
-        # Navigation with 1 min timeout
         await page.goto(url, wait_until="networkidle", timeout=TIMEOUT)
         
-        # Use your specific Rupee symbol logic
         price_locator = page.get_by_text(re.compile(r"₹"), exact=False).first
         await price_locator.wait_for(state="visible", timeout=TIMEOUT)
         
@@ -57,7 +52,6 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
         await page.close()
 
 async def get_full_comparison(items, pincode):
-    # Split by comma if the list comes in as one string
     if isinstance(items, list) and len(items) == 1 and ',' in items[0]:
         items = [i.strip() for i in items[0].split(',')]
     elif isinstance(items, str):
@@ -65,7 +59,7 @@ async def get_full_comparison(items, pincode):
     
     results = []
     async with async_playwright() as p:
-        browser = await playwright.chromium.launch(
+        browser = await p.chromium.launch(   # ← FIXED HERE
             headless=True,
             args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
