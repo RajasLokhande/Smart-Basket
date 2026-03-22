@@ -17,7 +17,19 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
             except:
                 await page.keyboard.press("Escape")
             url = f"https://www.zeptonow.com/search?query={item_name}"
-        
+
+            await page.goto(url, wait_until="domcontentloaded", timeout=TIMEOUT)
+
+            # ✅ FIX ONLY FOR ZEPTO
+            await page.locator('img').first.wait_for(timeout=15000)
+
+            await page.mouse.wheel(0, 400)
+            await asyncio.sleep(1)
+
+            page_text = await page.inner_text("body")
+            match = re.search(r'₹\s?([1-9]\d*)', page_text)
+            final_price = float(match.group(1)) if match else 0.0
+
         else:
             await page.goto("https://blinkit.com/", wait_until="domcontentloaded", timeout=TIMEOUT)
             try:
@@ -26,17 +38,18 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 await page.keyboard.press("Escape")
             url = f"https://blinkit.com/s/?q={item_name}"
 
-        await page.goto(url, wait_until="networkidle", timeout=TIMEOUT)
-        
-        price_locator = page.get_by_text(re.compile(r"₹"), exact=False).first
-        await price_locator.wait_for(state="visible", timeout=TIMEOUT)
-        
-        await page.mouse.wheel(0, 400)
-        await asyncio.sleep(1)
+            await page.goto(url, wait_until="networkidle", timeout=TIMEOUT)
+            
+            # 🔵 BLINKIT (UNCHANGED)
+            price_locator = page.get_by_text(re.compile(r"₹"), exact=False).first
+            await price_locator.wait_for(state="visible", timeout=TIMEOUT)
+            
+            await page.mouse.wheel(0, 400)
+            await asyncio.sleep(1)
 
-        price_text = await price_locator.inner_text()
-        match = re.search(r'₹\s?([1-9]\d*)', price_text)
-        final_price = float(match.group(1)) if match else 0.0
+            price_text = await price_locator.inner_text()
+            match = re.search(r'₹\s?([1-9]\d*)', price_text)
+            final_price = float(match.group(1)) if match else 0.0
 
         return {
             "platform": platform,
