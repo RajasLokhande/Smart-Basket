@@ -1,10 +1,12 @@
 import asyncio
 import re
 from playwright.async_api import async_playwright
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 async def scrape_platform(platform, item_name, pincode, browser_context):
     page = await browser_context.new_page()
-    TIMEOUT = 60000 
+    TIMEOUT = 25000 
     
     try:
         if platform.lower() == "zepto":
@@ -85,8 +87,10 @@ async def get_full_comparison(items, pincode):
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
             )
 
-            blink_res = await scrape_platform("Blinkit", current_item, pincode, context)
-            zepto_res = await scrape_platform("Zepto", current_item, pincode, context)
+            blink_res, zepto_res = await asyncio.gather(
+    scrape_platform("Blinkit", current_item, pincode, context),
+    scrape_platform("Zepto", current_item, pincode, context)
+)
 
             await context.close()
 
