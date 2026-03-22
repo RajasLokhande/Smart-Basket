@@ -65,14 +65,22 @@ async def get_full_comparison(items, pincode):
         "--no-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--disable-background-timer-throttling",
+        "--disable-renderer-backgrounding",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-ipc-flooding-protection",
         "--single-process",
         "--no-zygote",
+        "--memory-pressure-off",
         "--disable-setuid-sandbox"
     ]
 )
         context = await browser.new_context(
-    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    viewport={"width": 1280, "height": 720}
+    viewport={"width": 1280, "height": 720},
+    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 )
 
         for current_item in items:
