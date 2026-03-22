@@ -1,5 +1,5 @@
-import { useState, useRef, KeyboardEvent } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, type KeyboardEvent } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Search, MapPin, ArrowLeft, Loader2 } from "lucide-react";
 import PriceCard from "./PriceCard";
 import { type ScraperResult } from "../hooks/useScraper";

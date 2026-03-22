@@ -1,10 +1,13 @@
 import { useState, useCallback } from "react";
 
+// STEP 1: Replace this with your actual Railway/Render URL after you deploy the backend
+// Example: "https://pricesync-production.up.railway.app"
+const BACKEND_URL = "https://priceesync.netlify.app"; 
+
 export const useScraper = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
 
-  // Existing function for comparing manual lists
   const fetchPrices = useCallback(async (items: string[], pincode: string) => {
     setLoading(true);
     try {
@@ -12,7 +15,8 @@ export const useScraper = () => {
       formData.append("basket_json", JSON.stringify(items));
       formData.append("pincode", pincode);
 
-      const response = await fetch("http://127.0.0.1:8000/compare", {
+      // STEP 2: Use the BACKEND_URL variable
+      const response = await fetch(`${BACKEND_URL}/compare`, {
         method: "POST",
         body: formData,
       });
@@ -28,14 +32,14 @@ export const useScraper = () => {
     }
   }, []);
 
-  // New function for OCR scanning
   const uploadReceipt = useCallback(async (file: File) => {
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("file", file); // Must match 'file: UploadFile' in main.py
+      formData.append("file", file); 
 
-      const response = await fetch("http://127.0.0.1:8000/upload-receipt", {
+      // STEP 3: Use the BACKEND_URL variable here too
+      const response = await fetch(`${BACKEND_URL}/upload-receipt`, {
         method: "POST",
         body: formData,
       });

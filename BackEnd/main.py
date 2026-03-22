@@ -5,15 +5,27 @@ from scraper import get_full_comparison
 import PIL.Image
 import pytesseract  # Requires: pip install pytesseract pillow
 from PIL import Image
-
-# ADD THIS LINE HERE:
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
-if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+import os
+import pytesseract
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# FIX: Dynamic Tesseract path
+if os.name == 'nt': # Windows (Local)
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+else: # Linux (Railway)
+    pytesseract.pytesseract.tesseract_cmd = 'tesseract'
+
+# FIX: Update CORS to allow GitHub Pages
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://rajaslokhande.github.io", # Replace with your GitHub username
+        "https://pricesyncc.netlify.app"
+    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/compare")
 async def compare_prices(basket_json: str = Form(...), pincode: str = Form(...)):
@@ -76,4 +88,5 @@ async def upload_receipt(file: UploadFile = File(...)):
         return {"error": str(e), "items": []}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000, loop="asyncio")
+    port = int(os.environ.get("PORT", 8000)) # Get port from Railway environment
+    uvicorn.run(app, host="0.0.0.0", port=port)

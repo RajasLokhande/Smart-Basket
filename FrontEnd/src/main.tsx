@@ -5,7 +5,7 @@ import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
   // The basename MUST match the 'base' in your vite.config.ts
-<BrowserRouter basename="/PriceSync"> 
+<BrowserRouter > 
     <App />
 </BrowserRouter>
 );

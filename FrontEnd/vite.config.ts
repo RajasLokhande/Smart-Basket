@@ -5,7 +5,7 @@ import { defineConfig } from "vite"
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/PriceSync/',
+  base: '/',
   plugins: [
     react(),
     tailwindcss(), // This enables the Tailwind CSS v4 engine
