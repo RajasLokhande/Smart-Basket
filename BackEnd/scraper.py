@@ -28,17 +28,13 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
             await asyncio.sleep(3)
 
             # scroll to trigger lazy load
-            for _ in range(3):
-                await page.mouse.wheel(0, 1200)
+            for _ in range(4):
+                await page.mouse.wheel(0, 1400)
                 await asyncio.sleep(1)
 
-            await asyncio.sleep(2)
-
-            log(platform, "Waiting for prices to render")
-            await page.wait_for_function(
-                """() => document.body.innerText.includes("₹")""",
-                timeout=15000
-            )
+            # Zepto needs extra render time
+            log(platform, "Extra wait for Zepto render")
+            await asyncio.sleep(5)
 
             log(platform, "Locating price elements")
             elements = page.locator(":text-matches('₹\\\\s*[0-9]+', 'i')")
