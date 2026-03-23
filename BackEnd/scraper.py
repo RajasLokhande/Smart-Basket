@@ -26,13 +26,24 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
             )
 
             await asyncio.sleep(3)
-            await page.mouse.wheel(0, 800)
+
+            # scroll to trigger lazy load
+            for _ in range(3):
+                await page.mouse.wheel(0, 1200)
+                await asyncio.sleep(1)
+
             await asyncio.sleep(2)
+
+            log(platform, "Waiting for prices to render")
+            await page.wait_for_function(
+                """() => document.body.innerText.includes("₹")""",
+                timeout=15000
+            )
 
             log(platform, "Locating price elements")
             elements = page.locator(":text-matches('₹\\\\s*[0-9]+', 'i')")
-
             count = await elements.count()
+
             final_price = 0.0
 
             for i in range(count):
@@ -55,13 +66,24 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
             )
 
             await asyncio.sleep(2)
-            await page.mouse.wheel(0, 1000)
+
+            # scroll to trigger lazy load
+            for _ in range(3):
+                await page.mouse.wheel(0, 1200)
+                await asyncio.sleep(1)
+
             await asyncio.sleep(2)
+
+            log(platform, "Waiting for prices to render")
+            await page.wait_for_function(
+                """() => document.body.innerText.includes("₹")""",
+                timeout=15000
+            )
 
             log(platform, "Locating price elements")
             elements = page.locator(":text-matches('₹\\\\s*[0-9]+', 'i')")
-
             count = await elements.count()
+
             final_price = 0.0
 
             for i in range(count):
@@ -101,7 +123,6 @@ async def get_full_comparison(items, pincode):
 
     results = []
 
-    # KEY FIX → move playwright inside loop
     for current_item in items:
         print(f"\n[MAIN] Processing: {current_item}", flush=True)
 
