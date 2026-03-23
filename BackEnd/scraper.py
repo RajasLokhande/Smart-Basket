@@ -2,8 +2,13 @@ import asyncio
 import re
 from playwright.async_api import async_playwright
 import pytesseract
+import os
 
-pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+# OCR path (correct)
+if os.name == "nt":
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+else:
+    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 
 def log(platform, msg):
@@ -13,7 +18,7 @@ def log(platform, msg):
 async def scrape_platform(platform, item_name, pincode, browser_context):
     log(platform, "Creating new page")
     page = await browser_context.new_page()
-    TIMEOUT = 20000
+    TIMEOUT = 30000
     
     try:
         if platform.lower() == "zepto":
@@ -27,12 +32,10 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
 
             await asyncio.sleep(3)
 
-            # scroll to trigger lazy load
             for _ in range(4):
                 await page.mouse.wheel(0, 1400)
                 await asyncio.sleep(1)
 
-            # Zepto needs extra render time
             log(platform, "Extra wait for Zepto render")
             await asyncio.sleep(5)
 
@@ -63,7 +66,6 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
 
             await asyncio.sleep(2)
 
-            # scroll to trigger lazy load
             for _ in range(3):
                 await page.mouse.wheel(0, 1200)
                 await asyncio.sleep(1)
@@ -119,16 +121,18 @@ async def get_full_comparison(items, pincode):
 
     results = []
 
-    for current_item in items:
-        print(f"\n[MAIN] Processing: {current_item}", flush=True)
+    # FIX → launch browser once
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
 
-        async with async_playwright() as p:
-            browser = await p.webkit.launch(headless=True)
+        context = await browser.new_context(
+            viewport={"width": 1280, "height": 720},
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        )
+        await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-            context = await browser.new_context(
-                viewport={"width": 1280, "height": 720},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-            )
+        for current_item in items:
+            print(f"\n[MAIN] Processing: {current_item}", flush=True)
 
             blink_res, zepto_res = await asyncio.gather(
                 scrape_platform("Blinkit", current_item, pincode, context),
@@ -141,7 +145,7 @@ async def get_full_comparison(items, pincode):
                 "Zepto": zepto_res
             })
 
-            await context.close()
-            await browser.close()
+        await context.close()
+        await browser.close()
 
     return results
