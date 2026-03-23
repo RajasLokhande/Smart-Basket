@@ -53,22 +53,48 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
     
     try:
         # ------------------ ZEPTO FIXED ------------------
-        # Updated Zepto Logic
         if platform.lower() == "zepto":
-            # 1. Use the .co.in domain
-            await page.goto(f"https://www.zepto.co.in/search?query={item_name}", wait_until="networkidle")
-
-            # 2. Wait for the actual product grid
-            await page.wait_for_selector("[data-testid='product-card']", timeout=10000)
-
-            # 3. Locate the first card and specifically find the price span
-            # Zepto prices usually follow a pattern: ₹[Price]
-            first_card = page.locator("[data-testid='product-card']").first
-            price_text = await first_card.locator("span:has-text('₹')").first.inner_text()
+            log(platform, f"Navigating to Zepto search: {item_name}")
+            # FIX: Use the correct stable domain zepto.com
+            search_url = f"https://www.zepto.com/search?query={item_name}"
             
-            # Clean the price (e.g., '₹45' -> 45.0)
-            match = re.search(r'₹\s*(\d+)', price_text)
-            final_price = float(match.group(1)) if match else 0.0
+            await page.goto(
+                search_url, 
+                wait_until="domcontentloaded", 
+                timeout=TIMEOUT
+            )
+
+            # Wait for the product grid to render before searching for prices
+            try:
+                await page.wait_for_selector("[data-testid='product-card']", timeout=12000)
+            except:
+                log(platform, "No product cards appeared")
+
+            # CRITICAL: Scroll slightly to trigger hydration of price elements
+            await page.mouse.wheel(0, 800)
+            await asyncio.sleep(1)
+
+            log(platform, "Finding product cards")
+
+            # Use the reliable data-testid for selection
+            cards = page.locator("[data-testid='product-card']")
+            count = await cards.count()
+
+            final_price = 0.0
+
+            for i in range(count):
+                card = cards.nth(i)
+                text = await card.inner_text()
+
+                # Regex to extract price after the Rupee symbol
+                match = re.search(r'₹\s*([0-9]+)', text)
+                if match:
+                    price = float(match.group(1))
+                    if 10 <= price <= 5000:
+                        final_price = price
+                        break
+
+            log(platform, f"Parsed price: {final_price}")
 
         # ------------------ BLINKIT (UNCHANGED) ------------------
         else:
