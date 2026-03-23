@@ -53,42 +53,22 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
     
     try:
         # ------------------ ZEPTO FIXED ------------------
+        # Updated Zepto Logic
         if platform.lower() == "zepto":
+            # 1. Use the .co.in domain
+            await page.goto(f"https://www.zepto.co.in/search?query={item_name}", wait_until="networkidle")
 
-            log(platform, f"Navigating to search page: {item_name}")
-            await page.goto(
-                f"https://www.zeptonow.com/search?query={item_name}",
-                wait_until="domcontentloaded",
-                timeout=TIMEOUT
-            )
+            # 2. Wait for the actual product grid
+            await page.wait_for_selector("[data-testid='product-card']", timeout=10000)
 
-            await asyncio.sleep(3)
-
-            # scroll to load product cards
-            for _ in range(5):
-                await page.mouse.wheel(0, 1400)
-                await asyncio.sleep(1)
-
-            log(platform, "Finding product cards")
-
-            # Zepto product cards
-            cards = page.locator("a[href*='/product/']")
-            count = await cards.count()
-
-            final_price = 0.0
-
-            for i in range(count):
-                card = cards.nth(i)
-                text = await card.inner_text()
-
-                match = re.search(r'₹\s*([0-9]+)', text)
-                if match:
-                    price = float(match.group(1))
-                    if 10 <= price <= 5000:
-                        final_price = price
-                        break
-
-            log(platform, f"Parsed price: {final_price}")
+            # 3. Locate the first card and specifically find the price span
+            # Zepto prices usually follow a pattern: ₹[Price]
+            first_card = page.locator("[data-testid='product-card']").first
+            price_text = await first_card.locator("span:has-text('₹')").first.inner_text()
+            
+            # Clean the price (e.g., '₹45' -> 45.0)
+            match = re.search(r'₹\s*(\d+)', price_text)
+            final_price = float(match.group(1)) if match else 0.0
 
         # ------------------ BLINKIT (UNCHANGED) ------------------
         else:
