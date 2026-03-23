@@ -53,50 +53,48 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
     
     try:
         # ------------------ ZEPTO FIXED ------------------
+        # ------------------ ZEPTO FIXED ------------------
         if platform.lower() == "zepto":
             log(platform, f"Navigating to Zepto search: {item_name}")
             
-            # Use the verified .com search URL
+            # Using zepto.com is correct, but ensure we use a clean mobile-like User Agent 
+            # if desktop results are being throttled.
             search_url = f"https://www.zepto.com/search?query={item_name}"
             
-            # Set a more specific timeout and wait for load
-            await page.goto(
-                search_url, 
-                wait_until="load", # Changed from domcontentloaded to ensure scripts run
-                timeout=TIMEOUT
-            )
+            await page.goto(search_url, wait_until="load", timeout=TIMEOUT)
 
-            # Wait for the specific product card container
+            # FIX: Sometimes Zepto shows a 'Location' popup. We wait for the main 
+            # content area OR the product cards to appear.
             try:
-                # Increased timeout to 15s to account for slow hydration
-                await page.wait_for_selector("[data-testid='product-card']", timeout=30000)
+                # Wait for the product grid container or a card
+                await page.wait_for_selector("[data-testid='product-card'], .product-grid", timeout=15000)
             except:
-                log(platform, "Product cards did not appear. Attempting manual scroll trigger.")
+                log(platform, "Product grid not detected. Forcing interaction.")
 
-            # Scroll multiple times to trigger the 'Intersection Observer' that loads products
-            for _ in range(3):
-                await page.mouse.wheel(0, 500)
-                await asyncio.sleep(1.5) # Increased sleep for content loading
+            # FIX: Zepto's 'Zero cards found' often happens because the Intersection 
+            # Observer hasn't fired. We need to scroll specifically and wait.
+            for _ in range(4):
+                # Scroll down and then slightly up to 'jiggle' the observer
+                await page.mouse.wheel(0, 600)
+                await asyncio.sleep(1)
+                await page.mouse.wheel(0, -100)
+                await asyncio.sleep(0.5)
 
             log(platform, "Finding product cards")
 
-            # Target the specific data-testid attribute for the card
             cards = page.locator("[data-testid='product-card']")
             count = await cards.count()
 
             final_price = 0.0
-
             if count > 0:
-                # We prioritize the first visible product
+                # Target the first card and extract price
                 card = cards.first
                 text = await card.inner_text()
-
-                # Improved Regex to handle hidden characters or different rupee symbols
                 match = re.search(r'₹\s*(\d+)', text)
                 if match:
                     final_price = float(match.group(1))
             else:
-                log(platform, "Zero cards found after scrolling")
+                log(platform, "Zero cards found. Site may be requiring a Pincode set first.")
 
             log(platform, f"Parsed price: {final_price}")
         # ------------------ BLINKIT (UNCHANGED) ------------------
