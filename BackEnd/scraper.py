@@ -36,9 +36,9 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
             html = await page.content()
             log(platform, f"HTML length: {len(html)}")
 
-            # extract ₹ price from full HTML (works with nested tags)
-            match = re.search(r'₹\s*([0-9]+)', html)
-            final_price = float(match.group(1)) if match else 0.0
+            # avoid ₹1 / delivery fee / offers
+            matches = re.findall(r'₹\s*([1-9][0-9]{1,3})', html)
+            final_price = float(matches[0]) if matches else 0.0
 
             log(platform, f"Parsed price: {final_price}")
 
@@ -50,21 +50,20 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 timeout=TIMEOUT
             )
 
-            log(platform, "Page loaded, checking HTML size")
+            # allow render
+            await asyncio.sleep(2)
+
+            # scroll to trigger lazy loading
+            await page.mouse.wheel(0, 1000)
+            await asyncio.sleep(2)
+
+            log(platform, "Fetching HTML")
             html = await page.content()
             log(platform, f"HTML length: {len(html)}")
 
-            log(platform, "Waiting for ₹ symbol")
-            await page.wait_for_selector("text=₹", timeout=TIMEOUT)
-
-            log(platform, "Extracting price")
-            price_locator = page.locator("text=/₹\\s*[0-9]+/").first
-            price_text = await price_locator.inner_text()
-
-            log(platform, f"Raw price text: {price_text}")
-
-            match = re.search(r'₹\s*([0-9]+)', price_text)
-            final_price = float(match.group(1)) if match else 0.0
+            # avoid ₹1 matches
+            matches = re.findall(r'₹\s*([1-9][0-9]{1,3})', html)
+            final_price = float(matches[0]) if matches else 0.0
 
             log(platform, f"Parsed price: {final_price}")
 
