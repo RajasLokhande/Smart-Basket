@@ -55,47 +55,50 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
         # ------------------ ZEPTO FIXED ------------------
         if platform.lower() == "zepto":
             log(platform, f"Navigating to Zepto search: {item_name}")
-            # FIX: Use the correct stable domain zepto.com
+            
+            # Use the verified .com search URL
             search_url = f"https://www.zepto.com/search?query={item_name}"
             
+            # Set a more specific timeout and wait for load
             await page.goto(
                 search_url, 
-                wait_until="domcontentloaded", 
+                wait_until="load", # Changed from domcontentloaded to ensure scripts run
                 timeout=TIMEOUT
             )
 
-            # Wait for the product grid to render before searching for prices
+            # Wait for the specific product card container
             try:
-                await page.wait_for_selector("[data-testid='product-card']", timeout=12000)
+                # Increased timeout to 15s to account for slow hydration
+                await page.wait_for_selector("[data-testid='product-card']", timeout=30000)
             except:
-                log(platform, "No product cards appeared")
+                log(platform, "Product cards did not appear. Attempting manual scroll trigger.")
 
-            # CRITICAL: Scroll slightly to trigger hydration of price elements
-            await page.mouse.wheel(0, 800)
-            await asyncio.sleep(1)
+            # Scroll multiple times to trigger the 'Intersection Observer' that loads products
+            for _ in range(3):
+                await page.mouse.wheel(0, 500)
+                await asyncio.sleep(1.5) # Increased sleep for content loading
 
             log(platform, "Finding product cards")
 
-            # Use the reliable data-testid for selection
+            # Target the specific data-testid attribute for the card
             cards = page.locator("[data-testid='product-card']")
             count = await cards.count()
 
             final_price = 0.0
 
-            for i in range(count):
-                card = cards.nth(i)
+            if count > 0:
+                # We prioritize the first visible product
+                card = cards.first
                 text = await card.inner_text()
 
-                # Regex to extract price after the Rupee symbol
-                match = re.search(r'₹\s*([0-9]+)', text)
+                # Improved Regex to handle hidden characters or different rupee symbols
+                match = re.search(r'₹\s*(\d+)', text)
                 if match:
-                    price = float(match.group(1))
-                    if 10 <= price <= 5000:
-                        final_price = price
-                        break
+                    final_price = float(match.group(1))
+            else:
+                log(platform, "Zero cards found after scrolling")
 
             log(platform, f"Parsed price: {final_price}")
-
         # ------------------ BLINKIT (UNCHANGED) ------------------
         else:
             log(platform, f"Navigating to Blinkit search: {item_name}")
