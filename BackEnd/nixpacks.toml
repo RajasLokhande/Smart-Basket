@@ -2,13 +2,13 @@
 nixPkgs = [
     "python311",
     "tesseract",
-    "tesseract-data-eng"
+    "chromium"
 ]
 
 [phases.install]
 cmds = [
     "pip install --no-cache-dir -r requirements.txt",
-    "playwright install webkit --with-deps"
+    "playwright install chromium"
 ]
 
 [start]
