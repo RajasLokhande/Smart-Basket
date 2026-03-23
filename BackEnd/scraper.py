@@ -97,6 +97,8 @@ async def get_full_comparison(items, pincode):
     elif isinstance(items, str):
         items = [i.strip() for i in items.split(',')]
     
+    print(f"[SCANNING LIST]: {items}", flush=True)
+
     results = []
 
     async with async_playwright() as p:
@@ -112,10 +114,16 @@ async def get_full_comparison(items, pincode):
         for current_item in items:
             print(f"\n[MAIN] Processing: {current_item}", flush=True)
 
-            blink_res, zepto_res = await asyncio.gather(
-                scrape_platform("Blinkit", current_item, pincode, context),
+            # FIX: create tasks explicitly instead of gather
+            blink_task = asyncio.create_task(
+                scrape_platform("Blinkit", current_item, pincode, context)
+            )
+            zepto_task = asyncio.create_task(
                 scrape_platform("Zepto", current_item, pincode, context)
             )
+
+            blink_res = await blink_task
+            zepto_res = await zepto_task
 
             print("[MAIN] Results received", flush=True)
 
