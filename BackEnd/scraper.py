@@ -25,24 +25,19 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 timeout=TIMEOUT
             )
 
-            log(platform, "Page loaded, checking HTML size")
+            # allow JS render
+            await asyncio.sleep(3)
+
+            # simulate user scroll (important for Zepto lazy loading)
+            await page.mouse.wheel(0, 800)
+            await asyncio.sleep(2)
+
+            log(platform, "Fetching HTML after render")
             html = await page.content()
             log(platform, f"HTML length: {len(html)}")
 
-            # small wait helps Zepto render dynamic content
-            await asyncio.sleep(2)
-
-            log(platform, "Waiting for price text")
-            await page.wait_for_selector("text=₹", timeout=TIMEOUT)
-
-            log(platform, "Looking for price")
-            price_locator = page.locator("text=/₹\\s*[0-9]+/").first
-            await price_locator.wait_for(timeout=TIMEOUT)
-
-            price_text = await price_locator.inner_text()
-            log(platform, f"Raw price text: {price_text}")
-
-            match = re.search(r'₹\s*([0-9]+)', price_text)
+            # extract ₹ price from full HTML (works with nested tags)
+            match = re.search(r'₹\s*([0-9]+)', html)
             final_price = float(match.group(1)) if match else 0.0
 
             log(platform, f"Parsed price: {final_price}")
