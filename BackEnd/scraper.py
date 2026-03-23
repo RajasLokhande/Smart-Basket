@@ -52,43 +52,52 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
     TIMEOUT = 30000
     
     try:
-        # ------------------ ZEPTO FIXED ------------------
-        # ------------------ ZEPTO FIXED ------------------
-        # ------------------ ZEPTO FIXED (WITH PINCODE) ------------------
+       # ------------------ ZEPTO FIXED (WITH PINCODE INJECTION) ------------------
         if platform.lower() == "zepto":
-            log(platform, f"Navigating to Zepto search: {item_name} for {pincode}")
+            log(platform, f"Setting location to {pincode}...")
             
-            # 1. First, navigate to the base site to set the location if needed
+            # 1. Navigate to home first to trigger the location modal
             await page.goto("https://www.zepto.com/", wait_until="domcontentloaded")
             
             try:
-                # Check if location needs to be set (waiting for the location/pincode trigger)
-                # This targets the common 'Select Location' or 'Pincode' button
-                loc_button = page.locator("button:has-text('Select Location'), button:has-text('Deliver to')").first
-                if await loc_button.is_visible(timeout=5000):
-                    await loc_button.click()
-                    # Wait for input field and type pincode
-                    input_field = page.locator("input[placeholder*='Pincode'], input[placeholder*='area']").first
-                    await input_field.fill(pincode)
-                    await page.keyboard.press("Enter")
-                    await asyncio.sleep(2) # Wait for session to update
-            except Exception as e:
-                log(platform, f"Location setup skipped or already set: {e}")
+                # Target the 'Select Location' or 'Deliver to' button
+                loc_trigger = page.locator("button:has-text('Select Location'), button:has-text('Deliver to')").first
+                await loc_trigger.wait_for(state="visible", timeout=5000)
+                await loc_trigger.click()
 
-            # 2. Now perform the actual search
+                # Find the pincode/address input field
+                # Zepto uses various placeholders like "Search for area", "pincode", etc.
+                pincode_input = page.locator("input[placeholder*='area'], input[placeholder*='Pincode']").first
+                await pincode_input.wait_for(state="visible", timeout=5000)
+                await pincode_input.fill(pincode)
+                
+                # Wait for the specific address suggestion to appear and click the first one
+                # Usually, typing a pincode triggers a dropdown; we select the top result.
+                await asyncio.sleep(1.5)
+                await page.keyboard.press("ArrowDown")
+                await page.keyboard.press("Enter")
+                
+                # Give the site a moment to update the local session
+                await asyncio.sleep(2)
+                log(platform, f"Location set to {pincode}")
+            except Exception as e:
+                log(platform, f"Location setup skipped (likely already set): {e}")
+
+            # 2. Proceed to the actual search URL
             search_url = f"https://www.zepto.com/search?query={item_name}"
+            log(platform, f"Searching: {item_name}")
             await page.goto(search_url, wait_until="load", timeout=TIMEOUT)
 
-            # 3. Wait for the specific product card container
+            # 3. Wait for product cards to render
             try:
                 await page.wait_for_selector("[data-testid='product-card']", timeout=15000)
             except:
-                log(platform, "Product grid not detected. Forcing interaction.")
+                log(platform, "Product grid not detected. Forcing scroll trigger.")
 
-            # Scroll multiple times to trigger lazy-loading
+            # Scroll to trigger 'Intersection Observer' for dynamic content
             for _ in range(3):
                 await page.mouse.wheel(0, 600)
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(1)
 
             log(platform, "Finding product cards")
             cards = page.locator("[data-testid='product-card']")
@@ -102,9 +111,10 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 if match:
                     final_price = float(match.group(1))
             else:
-                log(platform, "Zero cards found. Possible out of stock in this Pincode.")
+                log(platform, f"Zero cards found. {item_name} may be unavailable in {pincode}.")
 
             log(platform, f"Parsed price: {final_price}")
+
         # ------------------ BLINKIT (UNCHANGED) ------------------
         else:
             log(platform, f"Navigating to Blinkit search: {item_name}")
