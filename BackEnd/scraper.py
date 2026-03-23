@@ -54,47 +54,55 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
     try:
         # ------------------ ZEPTO FIXED ------------------
         # ------------------ ZEPTO FIXED ------------------
+        # ------------------ ZEPTO FIXED (WITH PINCODE) ------------------
         if platform.lower() == "zepto":
-            log(platform, f"Navigating to Zepto search: {item_name}")
+            log(platform, f"Navigating to Zepto search: {item_name} for {pincode}")
             
-            # Using zepto.com is correct, but ensure we use a clean mobile-like User Agent 
-            # if desktop results are being throttled.
+            # 1. First, navigate to the base site to set the location if needed
+            await page.goto("https://www.zepto.com/", wait_until="domcontentloaded")
+            
+            try:
+                # Check if location needs to be set (waiting for the location/pincode trigger)
+                # This targets the common 'Select Location' or 'Pincode' button
+                loc_button = page.locator("button:has-text('Select Location'), button:has-text('Deliver to')").first
+                if await loc_button.is_visible(timeout=5000):
+                    await loc_button.click()
+                    # Wait for input field and type pincode
+                    input_field = page.locator("input[placeholder*='Pincode'], input[placeholder*='area']").first
+                    await input_field.fill(pincode)
+                    await page.keyboard.press("Enter")
+                    await asyncio.sleep(2) # Wait for session to update
+            except Exception as e:
+                log(platform, f"Location setup skipped or already set: {e}")
+
+            # 2. Now perform the actual search
             search_url = f"https://www.zepto.com/search?query={item_name}"
-            
             await page.goto(search_url, wait_until="load", timeout=TIMEOUT)
 
-            # FIX: Sometimes Zepto shows a 'Location' popup. We wait for the main 
-            # content area OR the product cards to appear.
+            # 3. Wait for the specific product card container
             try:
-                # Wait for the product grid container or a card
-                await page.wait_for_selector("[data-testid='product-card'], .product-grid", timeout=15000)
+                await page.wait_for_selector("[data-testid='product-card']", timeout=15000)
             except:
                 log(platform, "Product grid not detected. Forcing interaction.")
 
-            # FIX: Zepto's 'Zero cards found' often happens because the Intersection 
-            # Observer hasn't fired. We need to scroll specifically and wait.
-            for _ in range(4):
-                # Scroll down and then slightly up to 'jiggle' the observer
+            # Scroll multiple times to trigger lazy-loading
+            for _ in range(3):
                 await page.mouse.wheel(0, 600)
-                await asyncio.sleep(1)
-                await page.mouse.wheel(0, -100)
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1.5)
 
             log(platform, "Finding product cards")
-
             cards = page.locator("[data-testid='product-card']")
             count = await cards.count()
 
             final_price = 0.0
             if count > 0:
-                # Target the first card and extract price
                 card = cards.first
                 text = await card.inner_text()
                 match = re.search(r'₹\s*(\d+)', text)
                 if match:
                     final_price = float(match.group(1))
             else:
-                log(platform, "Zero cards found. Site may be requiring a Pincode set first.")
+                log(platform, "Zero cards found. Possible out of stock in this Pincode.")
 
             log(platform, f"Parsed price: {final_price}")
         # ------------------ BLINKIT (UNCHANGED) ------------------
