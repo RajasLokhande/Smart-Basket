@@ -96,36 +96,27 @@ async def get_full_comparison(items, pincode):
         items = [i.strip() for i in items[0].split(',')]
     elif isinstance(items, str):
         items = [i.strip() for i in items.split(',')]
-    
+
     print(f"[SCANNING LIST]: {items}", flush=True)
 
     results = []
 
-    async with async_playwright() as p:
-        print("[MAIN] Launching browser", flush=True)
-        browser = await p.webkit.launch(headless=True)
+    # KEY FIX → move playwright inside loop
+    for current_item in items:
+        print(f"\n[MAIN] Processing: {current_item}", flush=True)
 
-        print("[MAIN] Creating context", flush=True)
-        context = await browser.new_context(
-            viewport={"width": 1280, "height": 720},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-        )
+        async with async_playwright() as p:
+            browser = await p.webkit.launch(headless=True)
 
-        for current_item in items:
-            print(f"\n[MAIN] Processing: {current_item}", flush=True)
-
-            # FIX: create tasks explicitly instead of gather
-            blink_task = asyncio.create_task(
-                scrape_platform("Blinkit", current_item, pincode, context)
+            context = await browser.new_context(
+                viewport={"width": 1280, "height": 720},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
             )
-            zepto_task = asyncio.create_task(
+
+            blink_res, zepto_res = await asyncio.gather(
+                scrape_platform("Blinkit", current_item, pincode, context),
                 scrape_platform("Zepto", current_item, pincode, context)
             )
-
-            blink_res = await blink_task
-            zepto_res = await zepto_task
-
-            print("[MAIN] Results received", flush=True)
 
             results.append({
                 "query": current_item,
@@ -133,10 +124,7 @@ async def get_full_comparison(items, pincode):
                 "Zepto": zepto_res
             })
 
-        print("[MAIN] Closing context", flush=True)
-        await context.close()
+            await context.close()
+            await browser.close()
 
-        print("[MAIN] Closing browser", flush=True)
-        await browser.close()
-
-        return results
+    return results
