@@ -11,6 +11,19 @@ else:
     pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 
+import subprocess
+
+# force install playwright browser if missing
+def ensure_playwright():
+    try:
+        subprocess.run(
+            ["python", "-m", "playwright", "install", "chromium"],
+            check=True
+        )
+        print("[PLAYWRIGHT] Chromium ensured", flush=True)
+    except Exception as e:
+        print("[PLAYWRIGHT ERROR]", e, flush=True)
+
 def log(platform, msg):
     print(f"[{platform}] {msg}", flush=True)
 
@@ -112,6 +125,7 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
 
 
 async def get_full_comparison(items, pincode):
+    ensure_playwright()   # ← ADD THIS LINE
     if isinstance(items, list) and len(items) == 1 and ',' in items[0]:
         items = [i.strip() for i in items[0].split(',')]
     elif isinstance(items, str):
