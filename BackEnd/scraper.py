@@ -25,20 +25,24 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 timeout=TIMEOUT
             )
 
-            # allow JS render
             await asyncio.sleep(3)
-
-            # simulate user scroll (important for Zepto lazy loading)
             await page.mouse.wheel(0, 800)
             await asyncio.sleep(2)
 
-            log(platform, "Fetching HTML after render")
-            html = await page.content()
-            log(platform, f"HTML length: {len(html)}")
+            log(platform, "Locating price elements")
+            elements = page.locator(":text-matches('₹\\\\s*[0-9]+', 'i')")
 
-            # avoid ₹1 / delivery fee / offers
-            matches = re.findall(r'₹\s*([1-9][0-9]{1,3})', html)
-            final_price = float(matches[0]) if matches else 0.0
+            count = await elements.count()
+            final_price = 0.0
+
+            for i in range(count):
+                text = await elements.nth(i).inner_text()
+                match = re.search(r'₹\s*([0-9]+)', text)
+                if match:
+                    price = float(match.group(1))
+                    if 10 <= price <= 5000:
+                        final_price = price
+                        break
 
             log(platform, f"Parsed price: {final_price}")
 
@@ -50,20 +54,24 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
                 timeout=TIMEOUT
             )
 
-            # allow render
             await asyncio.sleep(2)
-
-            # scroll to trigger lazy loading
             await page.mouse.wheel(0, 1000)
             await asyncio.sleep(2)
 
-            log(platform, "Fetching HTML")
-            html = await page.content()
-            log(platform, f"HTML length: {len(html)}")
+            log(platform, "Locating price elements")
+            elements = page.locator(":text-matches('₹\\\\s*[0-9]+', 'i')")
 
-            # avoid ₹1 matches
-            matches = re.findall(r'₹\s*([1-9][0-9]{1,3})', html)
-            final_price = float(matches[0]) if matches else 0.0
+            count = await elements.count()
+            final_price = 0.0
+
+            for i in range(count):
+                text = await elements.nth(i).inner_text()
+                match = re.search(r'₹\s*([0-9]+)', text)
+                if match:
+                    price = float(match.group(1))
+                    if 10 <= price <= 5000:
+                        final_price = price
+                        break
 
             log(platform, f"Parsed price: {final_price}")
 
