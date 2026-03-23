@@ -64,27 +64,29 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
 
             await asyncio.sleep(3)
 
-            # heavy scroll for lazy loading
-            for _ in range(6):
-                await page.mouse.wheel(0, 1500)
+            # scroll to load product cards
+            for _ in range(5):
+                await page.mouse.wheel(0, 1400)
                 await asyncio.sleep(1)
 
-            log(platform, "Waiting for numbers to appear")
-            await page.wait_for_function(
-                "() => document.body.innerText.match(/[0-9]{2,4}/)",
-                timeout=15000
-            )
+            log(platform, "Finding product cards")
 
-            html = await page.content()
-
-            prices = re.findall(r'\b([1-9][0-9]{1,3})\b', html)
+            # Zepto product cards
+            cards = page.locator("a[href*='/product/']")
+            count = await cards.count()
 
             final_price = 0.0
-            for p in prices:
-                price = float(p)
-                if 10 <= price <= 5000:
-                    final_price = price
-                    break
+
+            for i in range(count):
+                card = cards.nth(i)
+                text = await card.inner_text()
+
+                match = re.search(r'₹\s*([0-9]+)', text)
+                if match:
+                    price = float(match.group(1))
+                    if 10 <= price <= 5000:
+                        final_price = price
+                        break
 
             log(platform, f"Parsed price: {final_price}")
 
