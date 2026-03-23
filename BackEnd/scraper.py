@@ -29,8 +29,11 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
             html = await page.content()
             log(platform, f"HTML length: {len(html)}")
 
-            log(platform, "Waiting for product cards")
-            await page.wait_for_selector("div[data-testid]", timeout=TIMEOUT)
+            # small wait helps Zepto render dynamic content
+            await asyncio.sleep(2)
+
+            log(platform, "Waiting for price text")
+            await page.wait_for_selector("text=₹", timeout=TIMEOUT)
 
             log(platform, "Looking for price")
             price_locator = page.locator("text=/₹\\s*[0-9]+/").first
