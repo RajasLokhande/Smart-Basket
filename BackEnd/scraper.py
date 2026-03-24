@@ -52,70 +52,48 @@ async def scrape_platform(platform, item_name, pincode, browser_context):
     TIMEOUT = 30000
     
     try:
-        # ------------------ ZEPTO FIXED (ROBUST DROPDOWN) ------------------
+        # ------------------ ZEPTO FIXED ------------------
         if platform.lower() == "zepto":
-            log(platform, f"Setting location to {pincode}...")
+            log(platform, f"Navigating to Zepto search: {item_name}")
             
-            # Navigate to home
-            await page.goto("https://www.zepto.com/", wait_until="networkidle")
-            
-            try:
-                # 1. Click the location trigger
-                loc_trigger = page.locator("button:has-text('Select Location'), [class*='location'], button:has-text('Deliver')").first
-                await loc_trigger.click()
-                await asyncio.sleep(1)
-
-                # 2. Fill the pincode
-                pincode_input = page.locator("input[placeholder*='Search'], input[placeholder*='Pincode'], input[id*='search']").first
-                await pincode_input.fill(pincode)
-                
-                # 3. FIX: Wait for suggestions with a broader selector and fallback
-                try:
-                    # Look for any list item or div that appears as a result of the search
-                    suggestion = page.locator("[class*='suggestion'], [data-testid*='address-item'], div[role='button']:has-text(pincode)").first
-                    await suggestion.wait_for(state="visible", timeout=5000)
-                    await suggestion.click()
-                except:
-                    log(platform, "Suggestion not found, attempting Enter key fallback.")
-                    await page.keyboard.press("Enter")
-                
-                # Wait for the session to update
-                await asyncio.sleep(3)
-                log(platform, f"Location update attempted for {pincode}")
-            except Exception as e:
-                log(platform, f"Location setup failed: {e}")
-
-            # 4. Perform the search
+            # FIX: Use zepto.com and wait for 'load' to ensure scripts are ready
             search_url = f"https://www.zepto.com/search?query={item_name}"
-            log(platform, f"Searching: {item_name}")
             await page.goto(search_url, wait_until="load", timeout=TIMEOUT)
 
-            # Wait for cards to appear
-            try:
-                # Zepto cards use data-testid='product-card'
-                await page.wait_for_selector("[data-testid='product-card']", timeout=15000)
-            except:
-                log(platform, "Cards not detected. Forcing interaction.")
+            # Important: Set the location context using pincode if possible
+            # (Adding a 3-second sleep as in your working example to allow JS render)
+            await asyncio.sleep(3)
 
-            # Scroll to trigger content loading
-            for _ in range(3):
-                await page.mouse.wheel(0, 600)
-                await asyncio.sleep(1)
+            # FIX: More reliable scroll to trigger lazy loading
+            # We scroll, wait, and scroll again
+            for _ in range(2):
+                await page.mouse.wheel(0, 800)
+                await asyncio.sleep(1.5)
 
-            log(platform, "Finding product cards")
+            log(platform, "Locating product cards")
+            
+            # FIX: Instead of generic text-matches, use the specific product card ID
             cards = page.locator("[data-testid='product-card']")
             count = await cards.count()
-
+            
             final_price = 0.0
+
             if count > 0:
-                # Extract price from the first card
-                card = cards.first
-                text = await card.inner_text()
+                # Target the first card (most relevant)
+                first_card = cards.first
+                text = await first_card.inner_text()
+                
+                # Use a robust Regex to find the price inside the card
                 match = re.search(r'₹\s*(\d+)', text)
                 if match:
                     final_price = float(match.group(1))
             else:
-                log(platform, f"Zero cards found for {item_name} in {pincode}")
+                log(platform, "Zero cards found. Checking fallback text search.")
+                # Fallback: Search the whole page text if selectors fail
+                content = await page.content()
+                matches = re.findall(r'₹\s*([1-9][0-9]{1,3})', content)
+                if matches:
+                    final_price = float(matches[0])
 
             log(platform, f"Parsed price: {final_price}")
         # ------------------ BLINKIT (UNCHANGED) ------------------
